@@ -385,7 +385,6 @@ class SalonDetailPage extends StatelessWidget {
                             return _buildStylistCard(
                               stylist.name,
                               stylist.specializations.isNotEmpty ? stylist.specializations.first : 'Stylist',
-                              stylist.rating,
                               '${stylist.experience} tahun',
                             );
                           },
@@ -673,7 +672,6 @@ class SalonDetailPage extends StatelessWidget {
   Widget _buildStylistCard(
     String name,
     String role,
-    double rating,
     String experience,
   ) {
     return Container(
@@ -713,22 +711,15 @@ class SalonDetailPage extends StatelessWidget {
             overflow: TextOverflow.ellipsis,
           ),
           const SizedBox(height: 4),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(
-                Icons.star,
-                color: AppTheme.warningColor,
-                size: 12,
-              ),
-              const SizedBox(width: 2),
-              Text(
-                rating.toString(),
-                style: AppTheme.bodyText3.copyWith(
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ],
+          Text(
+            experience,
+            style: AppTheme.bodyText3.copyWith(
+              color: AppTheme.textSecondary,
+              fontWeight: FontWeight.w600,
+            ),
+            textAlign: TextAlign.center,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
           ),
         ],
       ),

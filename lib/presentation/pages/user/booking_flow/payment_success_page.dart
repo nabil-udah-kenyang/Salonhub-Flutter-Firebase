@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../user_main_page.dart';
 
 class PaymentSuccessPage extends StatelessWidget {
   final String bookingId;
@@ -96,8 +97,7 @@ class PaymentSuccessPage extends StatelessWidget {
                 children: [
                   ElevatedButton(
                     onPressed: () {
-                      // Navigate to booking details
-                      Get.offAllNamed('/user');
+                      Get.offAll(() => const UserMainPage(initialIndex: 2));
                     },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppTheme.primaryColor,
@@ -121,8 +121,7 @@ class PaymentSuccessPage extends StatelessWidget {
                   
                   OutlinedButton(
                     onPressed: () {
-                      // Navigate to home
-                      Get.offAllNamed('/user');
+                      Get.offAll(() => const UserMainPage());
                     },
                     style: OutlinedButton.styleFrom(
                       foregroundColor: AppTheme.primaryColor,

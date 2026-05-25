@@ -186,22 +186,6 @@ class _StylistSelectionPageState extends State<StylistSelectionPage> {
                             ],
                           ),
                         ),
-                        Row(
-                          children: [
-                            Icon(
-                              Icons.star,
-                              color: AppTheme.warningColor,
-                              size: 16,
-                            ),
-                            const SizedBox(width: 4),
-                            Text(
-                              selectedStylist!.rating.toString(),
-                              style: AppTheme.bodyText2.copyWith(
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ],
-                        ),
                       ],
                     ),
                   ),
@@ -305,35 +289,6 @@ class _StylistSelectionPageState extends State<StylistSelectionPage> {
                             overflow: TextOverflow.ellipsis,
                           ),
                         ),
-                        const SizedBox(width: 8),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 8,
-                            vertical: 4,
-                          ),
-                          decoration: BoxDecoration(
-                            color: AppTheme.successColor.withOpacity(0.1),
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(
-                                Icons.star,
-                                color: AppTheme.warningColor,
-                                size: 12,
-                              ),
-                              const SizedBox(width: 4),
-                              Text(
-                                stylist.rating.toString(),
-                                style: AppTheme.bodyText3.copyWith(
-                                  color: AppTheme.successColor,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
                       ],
                     ),
                     
@@ -381,23 +336,6 @@ class _StylistSelectionPageState extends State<StylistSelectionPage> {
                             const SizedBox(width: 4),
                             Text(
                               '${stylist.experience} tahun',
-                              style: AppTheme.bodyText2.copyWith(
-                                color: AppTheme.textSecondary,
-                              ),
-                            ),
-                          ],
-                        ),
-                        Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(
-                              Icons.reviews_outlined,
-                              color: AppTheme.textSecondary,
-                              size: 16,
-                            ),
-                            const SizedBox(width: 4),
-                            Text(
-                              '${stylist.totalReviews} review',
                               style: AppTheme.bodyText2.copyWith(
                                 color: AppTheme.textSecondary,
                               ),

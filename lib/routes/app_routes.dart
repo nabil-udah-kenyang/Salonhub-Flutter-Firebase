@@ -64,6 +64,11 @@ class AppRoutes {
       page: () => const UserMainPage(),
       middlewares: [RoleMiddleware(['user'])],
     ),
+    GetPage(
+      name: userBookings,
+      page: () => const UserMainPage(initialIndex: 2),
+      middlewares: [RoleMiddleware(['user'])],
+    ),
     
     // Admin routes
     GetPage(

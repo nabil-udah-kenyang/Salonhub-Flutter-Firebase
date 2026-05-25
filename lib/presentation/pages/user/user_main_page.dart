@@ -8,14 +8,25 @@ import 'user_favorites_page.dart';
 import 'user_profile_page.dart';
 
 class UserMainPage extends StatefulWidget {
-  const UserMainPage({super.key});
+  final int? initialIndex;
+
+  const UserMainPage({
+    super.key,
+    this.initialIndex = 0,
+  });
 
   @override
   State<UserMainPage> createState() => _UserMainPageState();
 }
 
 class _UserMainPageState extends State<UserMainPage> {
-  int _currentIndex = 0;
+  late int _currentIndex;
+
+  @override
+  void initState() {
+    super.initState();
+    _currentIndex = (widget.initialIndex ?? 0).clamp(0, 4).toInt();
+  }
 
   @override
   Widget build(BuildContext context) {

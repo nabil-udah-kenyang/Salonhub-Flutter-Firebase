@@ -4,6 +4,7 @@ import '../../../../core/theme/app_theme.dart';
 import '../../../../data/models/barbershop_model.dart';
 import '../../../../data/models/service_model.dart';
 import '../../../../data/models/stylist_model.dart';
+import '../../../../data/repositories/booking_repository.dart';
 import 'booking_summary_page.dart';
 
 class DateSelectionPage extends StatefulWidget {
@@ -23,6 +24,7 @@ class DateSelectionPage extends StatefulWidget {
 }
 
 class _DateSelectionPageState extends State<DateSelectionPage> {
+  final BookingRepository _bookingRepository = BookingRepository();
   DateTime? selectedDate;
   String? selectedTime;
   
@@ -187,7 +189,8 @@ class _DateSelectionPageState extends State<DateSelectionPage> {
                         );
                       }
 
-                      final date = DateTime.now().add(Duration(days: index));
+                      final rawDate = DateTime.now().add(Duration(days: index));
+                      final date = _dateOnly(rawDate);
                       final isToday = _isSameDay(date, DateTime.now());
                       final isSelected = selectedDate != null && _isSameDay(date, selectedDate!);
                       final isWeekend = date.weekday == DateTime.saturday || date.weekday == DateTime.sunday;
@@ -307,48 +310,78 @@ class _DateSelectionPageState extends State<DateSelectionPage> {
                     ),
                   ),
                   const SizedBox(height: 16),
-                  GridView.builder(
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: 4,
-                      crossAxisSpacing: 12,
-                      mainAxisSpacing: 12,
-                      childAspectRatio: 2.5,
+                  StreamBuilder<Set<String>>(
+                    stream: _bookingRepository.streamBookedTimesForStylist(
+                      stylistId: widget.selectedStylist.id ?? '',
+                      bookingDate: selectedDate!,
                     ),
-                    itemCount: availableTimes.length,
-                    itemBuilder: (context, index) {
-                      final time = availableTimes[index];
-                      final isSelected = selectedTime == time;
-                      final isPastTime = _isPastTime(time);
-                      
-                      return GestureDetector(
-                        onTap: isPastTime ? null : () {
-                          setState(() {
-                            selectedTime = time;
-                          });
-                        },
-                        child: Container(
-                          decoration: BoxDecoration(
-                            color: isSelected ? AppTheme.primaryColor : 
-                                   isPastTime ? AppTheme.surfaceColor : AppTheme.surfaceColor,
-                            borderRadius: BorderRadius.circular(8),
-                            border: Border.all(
-                              color: isSelected ? AppTheme.primaryColor : 
-                                     isPastTime ? AppTheme.borderColor : AppTheme.borderColor,
-                            ),
-                          ),
-                          child: Center(
-                            child: Text(
-                              time,
-                              style: AppTheme.bodyText2.copyWith(
-                                color: isSelected ? Colors.white : 
-                                       isPastTime ? AppTheme.textTertiary : AppTheme.textPrimary,
-                                fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+                    builder: (context, snapshot) {
+                      final bookedTimes = snapshot.data ?? <String>{};
+
+                      if (selectedTime != null && bookedTimes.contains(selectedTime)) {
+                        WidgetsBinding.instance.addPostFrameCallback((_) {
+                          if (mounted && selectedTime != null && bookedTimes.contains(selectedTime)) {
+                            setState(() => selectedTime = null);
+                          }
+                        });
+                      }
+
+                      return GridView.builder(
+                        shrinkWrap: true,
+                        physics: const NeverScrollableScrollPhysics(),
+                        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: 4,
+                          crossAxisSpacing: 12,
+                          mainAxisSpacing: 12,
+                          childAspectRatio: 2.5,
+                        ),
+                        itemCount: availableTimes.length,
+                        itemBuilder: (context, index) {
+                          final time = availableTimes[index];
+                          final isSelected = selectedTime == time;
+                          final isPastTime = _isPastTime(time);
+                          final isBooked = bookedTimes.contains(time);
+                          final isOutsideSchedule = !_isStylistWorkingAt(time);
+                          final isDisabled = isPastTime || isBooked || isOutsideSchedule;
+
+                          return GestureDetector(
+                            onTap: isDisabled ? null : () {
+                              setState(() {
+                                selectedTime = time;
+                              });
+                            },
+                            child: Container(
+                              decoration: BoxDecoration(
+                                color: isSelected
+                                    ? AppTheme.primaryColor
+                                    : isBooked
+                                        ? AppTheme.errorColor.withValues(alpha: 0.08)
+                                        : AppTheme.surfaceColor,
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(
+                                  color: isSelected
+                                      ? AppTheme.primaryColor
+                                      : isBooked
+                                          ? AppTheme.errorColor.withValues(alpha: 0.35)
+                                          : AppTheme.borderColor,
+                                ),
+                              ),
+                              child: Center(
+                                child: Text(
+                                  time,
+                                  style: AppTheme.bodyText2.copyWith(
+                                    color: isSelected
+                                        ? Colors.white
+                                        : isDisabled
+                                            ? AppTheme.textTertiary
+                                            : AppTheme.textPrimary,
+                                    fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+                                  ),
+                                ),
                               ),
                             ),
-                          ),
-                        ),
+                          );
+                        },
                       );
                     },
                   ),
@@ -481,9 +514,47 @@ class _DateSelectionPageState extends State<DateSelectionPage> {
 
     if (pickedDate != null) {
       setState(() {
-        selectedDate = pickedDate;
+        selectedDate = _dateOnly(pickedDate);
         selectedTime = null;
       });
+    }
+  }
+
+  DateTime _dateOnly(DateTime date) {
+    return DateTime(date.year, date.month, date.day);
+  }
+
+  bool _isStylistWorkingAt(String time) {
+    if (selectedDate == null || widget.selectedStylist.workSchedule.isEmpty) {
+      return true;
+    }
+
+    final schedule = widget.selectedStylist.workSchedule[_getEnglishDayName(selectedDate!.weekday)];
+    if (schedule == null || schedule.isEmpty) {
+      return true;
+    }
+
+    return schedule.contains(time);
+  }
+
+  String _getEnglishDayName(int weekday) {
+    switch (weekday) {
+      case 1:
+        return 'Monday';
+      case 2:
+        return 'Tuesday';
+      case 3:
+        return 'Wednesday';
+      case 4:
+        return 'Thursday';
+      case 5:
+        return 'Friday';
+      case 6:
+        return 'Saturday';
+      case 7:
+        return 'Sunday';
+      default:
+        return 'Monday';
     }
   }
   

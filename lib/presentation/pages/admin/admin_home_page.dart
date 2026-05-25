@@ -132,6 +132,36 @@ class AdminHomePage extends StatelessWidget {
               
               const SizedBox(height: 24),
               
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      'Jadwal Hari Ini',
+                      style: AppTheme.heading3.copyWith(fontWeight: FontWeight.w800),
+                    ),
+                  ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: AppTheme.primaryExtraLight,
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Text(
+                      'Buka sampai 21.00',
+                      style: AppTheme.bodyText3.copyWith(
+                        color: AppTheme.primaryColor,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+
+              _buildTodayScheduleSection(),
+
+              const SizedBox(height: 24),
+
               Text(
                 'Aksi Cepat',
                 style: AppTheme.heading3.copyWith(fontWeight: FontWeight.w800),
@@ -183,59 +213,6 @@ class AdminHomePage extends StatelessWidget {
                   ),
                 ],
               ),
-              
-              const SizedBox(height: 24),
-              
-              Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      'Booking Terbaru',
-                      style: AppTheme.heading3.copyWith(fontWeight: FontWeight.w800),
-                    ),
-                  ),
-                  Text(
-                    'Lihat semua',
-                    style: AppTheme.bodyText2.copyWith(
-                      color: AppTheme.primaryColor,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16),
-              
-              _buildRecentBookingsSection(),
-              
-              const SizedBox(height: 24),
-              
-              Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      'Jadwal Hari Ini',
-                      style: AppTheme.heading3.copyWith(fontWeight: FontWeight.w800),
-                    ),
-                  ),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                    decoration: BoxDecoration(
-                      color: AppTheme.primaryExtraLight,
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: Text(
-                      'Buka sampai 21.00',
-                      style: AppTheme.bodyText3.copyWith(
-                        color: AppTheme.primaryColor,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16),
-              
-              _buildTodayScheduleSection(),
             ],
           ),
         ),
@@ -469,45 +446,6 @@ class AdminHomePage extends StatelessWidget {
     );
   }
 
-  Widget _buildRecentBookingsSection() {
-    return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
-      stream: _adminBarbershopStream(),
-      builder: (context, snapshot) {
-        if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-          return _buildEmptyPanel('Belum ada data booking dari database.');
-        }
-        final barbershopId = snapshot.data!.docs.first.id;
-        return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
-          stream: FirebaseFirestore.instance
-              .collection(AppConstants.bookingsCollection)
-              .where('barbershopId', isEqualTo: barbershopId)
-              .limit(5)
-              .snapshots(),
-          builder: (context, bookingSnapshot) {
-            final bookings = bookingSnapshot.data?.docs ?? [];
-            if (bookings.isEmpty) {
-              return _buildEmptyPanel('Belum ada booking masuk.');
-            }
-            return Column(
-              children: bookings.map((doc) {
-                final data = doc.data();
-                return Padding(
-                  padding: const EdgeInsets.only(bottom: 12),
-                  child: _buildBookingCard(
-                    data['userName']?.toString() ?? 'Pelanggan',
-                    '${(data['serviceIds'] as List?)?.length ?? 0} layanan',
-                    data['bookingTime']?.toString() ?? '-',
-                    _bookingStatusLabel(data['status']?.toString() ?? 'pending'),
-                  ),
-                );
-              }).toList(),
-            );
-          },
-        );
-      },
-    );
-  }
-
   Widget _buildTodayScheduleSection() {
     return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
       stream: _adminBarbershopStream(),
@@ -568,18 +506,6 @@ class AdminHomePage extends StatelessWidget {
         textAlign: TextAlign.center,
       ),
     );
-  }
-
-  String _bookingStatusLabel(String status) {
-    switch (status.toLowerCase()) {
-      case 'confirmed':
-      case 'completed':
-        return 'Aktif';
-      case 'cancelled':
-        return 'Dibatalkan';
-      default:
-        return 'Pending';
-    }
   }
 
   String _formatRupiah(double value) {
@@ -659,92 +585,6 @@ class AdminHomePage extends StatelessWidget {
             ),
           ],
         ),
-      ),
-    );
-  }
-  
-  Widget _buildBookingCard(String customer, String service, String time, String status) {
-    final bool isActive = status == 'Aktif';
-    final Color statusColor = isActive ? AppTheme.primaryColor : const Color(0xFF9A6B00);
-    final Color statusBackground = isActive ? AppTheme.primaryExtraLight : const Color(0xFFFFF8E1);
-    
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: AppTheme.surfaceColor,
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: AppTheme.borderColor),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.025),
-            blurRadius: 16,
-            offset: const Offset(0, 8),
-          ),
-        ],
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 40,
-            height: 40,
-            decoration: BoxDecoration(
-              color: AppTheme.primaryColor.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(20),
-            ),
-            child: Icon(
-              Icons.person,
-              color: AppTheme.primaryColor,
-              size: 20,
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  customer,
-                  style: AppTheme.bodyText1.copyWith(
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  service,
-                  style: AppTheme.bodyText2.copyWith(
-                    color: AppTheme.textSecondaryColor,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              Text(
-                time,
-                style: AppTheme.bodyText2.copyWith(
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-              const SizedBox(height: 2),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                decoration: BoxDecoration(
-                  color: statusBackground,
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: Text(
-                  status,
-                  style: AppTheme.bodyText3.copyWith(
-                    color: statusColor,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ],
       ),
     );
   }

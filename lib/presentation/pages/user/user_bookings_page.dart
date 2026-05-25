@@ -26,6 +26,7 @@ class _UserBookingsPageState extends State<UserBookingsPage> {
   final StylistRepository _stylistRepository = StylistRepository();
   int _selectedTabIndex = 0;
   String? _cancellingBookingId;
+  String? _ratingBookingId;
 
   @override
   Widget build(BuildContext context) {
@@ -150,9 +151,12 @@ class _UserBookingsPageState extends State<UserBookingsPage> {
                     ? '${booking.serviceIds.length} layanan'
                     : serviceNames.join(' + ');
                 final canCancel = _canCancelStatus(booking.status) && booking.id != null;
+                final canReview = _canReviewBooking(booking);
                 final isCancelling = _cancellingBookingId == booking.id;
+                final isRating = _ratingBookingId == booking.id;
 
                 return _buildBookingCard(
+                  bookingCode: booking.id ?? '-',
                   salonName: salon?.name ?? 'Barbershop tidak ditemukan',
                   service: servicesSummary,
                   dateTime: '${_formatDate(booking.bookingDate)}, ${booking.bookingTime}',
@@ -163,6 +167,10 @@ class _UserBookingsPageState extends State<UserBookingsPage> {
                   canCancel: canCancel,
                   onCancel: canCancel ? () => _confirmCancel(booking) : null,
                   isCancelling: isCancelling,
+                  canReview: canReview,
+                  onReview: canReview ? () => _showRatingDialog(booking) : null,
+                  isReviewed: booking.isReviewed,
+                  isRating: isRating,
                 );
               },
             );
@@ -173,6 +181,7 @@ class _UserBookingsPageState extends State<UserBookingsPage> {
   }
   
   Widget _buildBookingCard({
+    required String bookingCode,
     required String salonName,
     required String service,
     required String dateTime,
@@ -183,6 +192,10 @@ class _UserBookingsPageState extends State<UserBookingsPage> {
     required bool canCancel,
     VoidCallback? onCancel,
     bool isCancelling = false,
+    required bool canReview,
+    VoidCallback? onReview,
+    bool isReviewed = false,
+    bool isRating = false,
   }) {
     return Container(
       padding: const EdgeInsets.all(16),
@@ -209,6 +222,14 @@ class _UserBookingsPageState extends State<UserBookingsPage> {
                     Text(
                       salonName,
                       style: AppTheme.heading3,
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'Kode: $bookingCode',
+                      style: AppTheme.bodyText2.copyWith(
+                        color: AppTheme.primaryColor,
+                        fontWeight: FontWeight.w700,
+                      ),
                     ),
                     const SizedBox(height: 4),
                     Text(
@@ -299,31 +320,45 @@ class _UserBookingsPageState extends State<UserBookingsPage> {
               const SizedBox(width: 12),
               Expanded(
                 child: TextButton(
-                  onPressed: (canCancel && !isCancelling) ? onCancel : null,
+                  onPressed: canReview
+                      ? (isRating ? null : onReview)
+                      : (canCancel && !isCancelling)
+                          ? onCancel
+                          : null,
                   style: TextButton.styleFrom(
                     padding: const EdgeInsets.symmetric(vertical: 14),
-                    backgroundColor: canCancel
-                        ? Colors.red.withValues(alpha: 0.1)
-                        : AppTheme.borderColor.withValues(alpha: 0.2),
+                    backgroundColor: canReview
+                        ? AppTheme.warningColor.withValues(alpha: 0.12)
+                        : canCancel
+                            ? Colors.red.withValues(alpha: 0.1)
+                            : AppTheme.borderColor.withValues(alpha: 0.2),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(8),
                     ),
                   ),
-                  child: isCancelling
-                      ? const SizedBox(
+                  child: isCancelling || isRating
+                      ? SizedBox(
                           height: 18,
                           width: 18,
                           child: CircularProgressIndicator(
                             strokeWidth: 2,
-                            color: Colors.red,
+                            color: isRating ? AppTheme.warningColor : Colors.red,
                           ),
                         )
                       : Text(
-                          canCancel ? 'Batalkan' : 'Tidak Bisa',
+                          canReview
+                              ? 'Beri Rating'
+                              : isReviewed
+                                  ? 'Sudah Rating'
+                                  : canCancel
+                                      ? 'Batalkan'
+                                      : 'Tidak Bisa',
                           style: AppTheme.bodyText2.copyWith(
-                            color: canCancel
-                                ? Colors.red
-                                : AppTheme.textSecondaryColor,
+                            color: canReview
+                                ? AppTheme.warningColor
+                                : canCancel
+                                    ? Colors.red
+                                    : AppTheme.textSecondaryColor,
                             fontWeight: FontWeight.w600,
                           ),
                         ),
@@ -419,7 +454,97 @@ class _UserBookingsPageState extends State<UserBookingsPage> {
   }
 
   bool _canCancelStatus(String status) {
-    return status == 'pending' || status == 'confirmed' || status == 'rescheduled';
+    return status == 'pending';
+  }
+
+  bool _canReviewBooking(BookingModel booking) {
+    return booking.id != null &&
+        booking.status == 'completed' &&
+        !booking.isReviewed;
+  }
+
+  Future<void> _showRatingDialog(BookingModel booking) async {
+    if (booking.id == null) return;
+
+    var selectedRating = 5;
+    final rating = await showDialog<int>(
+      context: context,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            return AlertDialog(
+              title: const Text('Beri Rating Barbershop'),
+              content: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: List.generate(5, (index) {
+                  final starValue = index + 1;
+                  final isSelected = starValue <= selectedRating;
+                  return IconButton(
+                    onPressed: () {
+                      setDialogState(() => selectedRating = starValue);
+                    },
+                    icon: Icon(
+                      isSelected ? Icons.star : Icons.star_border,
+                      color: AppTheme.warningColor,
+                      size: 34,
+                    ),
+                  );
+                }),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  child: const Text('Batal'),
+                ),
+                ElevatedButton(
+                  onPressed: () => Navigator.of(context).pop(selectedRating),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppTheme.primaryColor,
+                    foregroundColor: Colors.white,
+                  ),
+                  child: const Text('Kirim'),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+
+    if (rating == null) {
+      return;
+    }
+
+    setState(() => _ratingBookingId = booking.id);
+    try {
+      await _barbershopRepository.submitRating(
+        bookingId: booking.id!,
+        barbershopId: booking.barbershopId,
+        rating: rating,
+      );
+
+      if (mounted) {
+        Get.snackbar(
+          'Terima kasih',
+          'Rating barbershop berhasil disimpan.',
+          backgroundColor: AppTheme.surfaceColor,
+          colorText: AppTheme.textPrimaryColor,
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        Get.snackbar(
+          'Gagal menyimpan rating',
+          e.toString(),
+          backgroundColor: AppTheme.errorColor.withValues(alpha: 0.1),
+          colorText: AppTheme.errorColor,
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _ratingBookingId = null);
+      }
+    }
   }
 
   Future<void> _confirmCancel(BookingModel booking) async {
@@ -523,6 +648,7 @@ class _UserBookingsPageState extends State<UserBookingsPage> {
                   style: AppTheme.heading2,
                 ),
                 const SizedBox(height: 16),
+                _buildDetailRow('Kode Booking', booking.id ?? '-'),
                 _buildDetailRow('Salon', salon?.name ?? 'Barbershop tidak ditemukan'),
                 _buildDetailRow('Alamat', salon?.address ?? 'Alamat belum tersedia'),
                 _buildDetailRow(

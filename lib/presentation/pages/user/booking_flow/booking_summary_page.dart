@@ -219,26 +219,6 @@ class BookingSummaryPage extends StatelessWidget {
                             color: AppTheme.textSecondary,
                           ),
                         ),
-                        Row(
-                          children: [
-                            Icon(
-                              Icons.star,
-                              color: AppTheme.warningColor,
-                              size: 16,
-                            ),
-                            const SizedBox(width: 4),
-                            Expanded(
-                              child: Text(
-                                '${selectedStylist.rating} (${selectedStylist.totalReviews} review)',
-                                style: AppTheme.bodyText2.copyWith(
-                                  color: AppTheme.textSecondary,
-                                ),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ),
-                          ],
-                        ),
                       ],
                     ),
                   ),

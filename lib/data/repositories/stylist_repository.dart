@@ -67,7 +67,11 @@ class StylistRepository {
       await _firestore
           .collection('stylists')
           .doc(stylist.id)
-          .update(stylist.toFirestore());
+          .update({
+            ...stylist.toFirestore(),
+            'rating': FieldValue.delete(),
+            'totalReviews': FieldValue.delete(),
+          });
     } catch (e) {
       throw Exception('Failed to update stylist: $e');
     }
@@ -94,26 +98,6 @@ class StylistRepository {
       });
     } catch (e) {
       throw Exception('Failed to toggle stylist status: $e');
-    }
-  }
-
-  // Update stylist rating
-  Future<void> updateStylistRating(String stylistId, double newRating) async {
-    try {
-      final doc = await _firestore.collection('stylists').doc(stylistId).get();
-      if (doc.exists) {
-        final stylist = StylistModel.fromFirestore(doc);
-        final totalReviews = stylist.totalReviews + 1;
-        final updatedRating = ((stylist.rating * stylist.totalReviews) + newRating) / totalReviews;
-
-        await _firestore.collection('stylists').doc(stylistId).update({
-          'rating': updatedRating,
-          'totalReviews': totalReviews,
-          'updatedAt': FieldValue.serverTimestamp(),
-        });
-      }
-    } catch (e) {
-      throw Exception('Failed to update stylist rating: $e');
     }
   }
 
@@ -171,26 +155,6 @@ class StylistRepository {
     }
   }
 
-  // Get top rated stylists
-  Future<List<StylistModel>> getTopRatedStylists({int limit = 10}) async {
-    try {
-      final query = await _firestore
-          .collection('stylists')
-          .where('isActive', isEqualTo: true)
-          .where('totalReviews', isGreaterThan: 0)
-          .orderBy('rating', descending: true)
-          .orderBy('totalReviews', descending: true)
-          .limit(limit)
-          .get();
-
-      return query.docs
-          .map((doc) => StylistModel.fromFirestore(doc))
-          .toList();
-    } catch (e) {
-      throw Exception('Failed to get top rated stylists: $e');
-    }
-  }
-
   // Get stylist statistics
   Future<Map<String, dynamic>> getStylistStats(String barbershopId) async {
     try {
@@ -204,18 +168,9 @@ class StylistRepository {
           .where((doc) => doc['isActive'] == true)
           .length;
       
-      double avgRating = 0;
-      if (totalStylists > 0) {
-        final totalRating = query.docs.fold<double>(0, (sum, doc) {
-          return sum + ((doc['rating'] ?? 0.0) as double);
-        });
-        avgRating = totalRating / totalStylists;
-      }
-
       return {
         'totalStylists': totalStylists,
         'activeStylists': activeStylists,
-        'averageRating': avgRating,
       };
     } catch (e) {
       throw Exception('Failed to get stylist stats: $e');

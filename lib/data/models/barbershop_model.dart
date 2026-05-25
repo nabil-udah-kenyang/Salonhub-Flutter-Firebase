@@ -59,8 +59,8 @@ class BarbershopModel {
         data['operatingHours'] ?? {}
       ),
       closedDays: List<String>.from(data['closedDays'] ?? []),
-      rating: (data['rating'] ?? 0.0).toDouble(),
-      totalReviews: data['totalReviews'] ?? 0,
+      rating: (data['rating'] as num?)?.toDouble() ?? 0.0,
+      totalReviews: (data['totalReviews'] as num?)?.toInt() ?? 0,
       ownerId: data['ownerId'] ?? '',
       isActive: data['isActive'] ?? true,
       isApproved: data['isApproved'] ?? false,

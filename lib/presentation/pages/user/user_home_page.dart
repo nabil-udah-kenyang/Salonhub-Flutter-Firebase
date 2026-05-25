@@ -22,9 +22,6 @@ class UserHomePage extends StatefulWidget {
 class _UserHomePageState extends State<UserHomePage> {
   final BarbershopRepository _barbershopRepository = BarbershopRepository();
   final TextEditingController _searchController = TextEditingController();
-  PageController? _promoController;
-  Timer? _promoAutoTimer;
-  int _currentPromoIndex = 0;
 
   final List<_PromoBannerData> _promoBanners = const [
     _PromoBannerData(
@@ -55,8 +52,6 @@ class _UserHomePageState extends State<UserHomePage> {
 
   @override
   void dispose() {
-    _promoAutoTimer?.cancel();
-    _promoController?.dispose();
     _searchController.dispose();
     super.dispose();
   }
@@ -64,26 +59,6 @@ class _UserHomePageState extends State<UserHomePage> {
   @override
   void initState() {
     super.initState();
-    _promoController = PageController(viewportFraction: 0.9);
-    _startPromoAutoPlay();
-  }
-
-  void _startPromoAutoPlay() {
-    _promoAutoTimer?.cancel();
-    _promoAutoTimer = Timer.periodic(const Duration(seconds: 3), (_) {
-      final controller = _effectivePromoController;
-      if (!controller.hasClients) return;
-      final nextIndex = (_currentPromoIndex + 1) % _promoBanners.length;
-      controller.animateToPage(
-        nextIndex,
-        duration: const Duration(milliseconds: 600),
-        curve: Curves.easeOutCubic,
-      );
-    });
-  }
-
-  PageController get _effectivePromoController {
-    return _promoController ??= PageController(viewportFraction: 0.9);
   }
 
   @override
@@ -100,77 +75,49 @@ class _UserHomePageState extends State<UserHomePage> {
               pinned: true,
               backgroundColor: AppTheme.primaryColor,
               flexibleSpace: FlexibleSpaceBar(
-                background: Container(
-                  decoration: const BoxDecoration(
-                    gradient: AppTheme.primaryGradient,
-                  ),
-                  child: Padding(
-                    padding: const EdgeInsets.fromLTRB(20, 28, 20, 20),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    'Selamat Datang! 👋',
-                                    style: AppTheme.bodyText2.copyWith(
-                                      color: Colors.white.withValues(alpha: 0.9),
-                                    ),
-                                  ),
-                                  const SizedBox(height: 16),
-                                  Text(
-                                    'Temukan Salon Terbaik',
-                                    style: AppTheme.heading1.copyWith(
-                                      color: Colors.white,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            Container(
-                              width: 45,
-                              height: 45,
-                              decoration: BoxDecoration(
-                                color: Colors.white.withValues(alpha: 0.2),
-                                borderRadius: BorderRadius.circular(12),
-                                border: Border.all(
-                                  color: Colors.white.withValues(alpha: 0.3),
-                                ),
-                              ),
-                              child: Stack(
-                                children: [
-                                  Center(
-                                    child: Icon(
-                                      Icons.notifications_outlined,
-                                      color: Colors.white,
-                                      size: 24,
-                                    ),
-                                  ),
-                                  Positioned(
-                                    top: 8,
-                                    right: 8,
-                                    child: Container(
-                                      width: 8,
-                                      height: 8,
-                                      decoration: BoxDecoration(
-                                        color: AppTheme.errorColor,
-                                        borderRadius: BorderRadius.circular(4),
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
+                background: Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    Image.asset(
+                      'lib/assets/images/barber.jpg',
+                      fit: BoxFit.cover,
+                      alignment: Alignment.center,
+                    ),
+                    Container(
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.topCenter,
+                          end: Alignment.bottomCenter,
+                          colors: [
+                            Colors.black.withValues(alpha: 0.18),
+                            AppTheme.primaryColor.withValues(alpha: 0.78),
                           ],
                         ),
-                      ],
+                      ),
                     ),
-                  ),
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(20, 28, 20, 20),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Selamat Datang! 👋',
+                            style: AppTheme.bodyText2.copyWith(
+                              color: Colors.white.withValues(alpha: 0.9),
+                            ),
+                          ),
+                          const SizedBox(height: 16),
+                          Text(
+                            'Temukan Salon Terbaik',
+                            style: AppTheme.heading1.copyWith(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ),
@@ -377,48 +324,9 @@ class _UserHomePageState extends State<UserHomePage> {
             const SliverToBoxAdapter(child: SizedBox(height: 28)),
 
             SliverToBoxAdapter(
-              child: Column(
-                children: [
-                  SizedBox(
-                    height: 185,
-                    child: PageView.builder(
-                      controller: _effectivePromoController,
-                      itemCount: _promoBanners.length,
-                      onPageChanged: (index) {
-                        setState(() => _currentPromoIndex = index);
-                      },
-                      itemBuilder: (context, index) {
-                        final data = _promoBanners[index];
-                        return Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 4),
-                          child: _buildPromoBanner(
-                            data: data,
-                            onTap: () => _handlePromoAction(data),
-                          ),
-                        );
-                      },
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: List.generate(_promoBanners.length, (index) {
-                      final isActive = index == _currentPromoIndex;
-                      return AnimatedContainer(
-                        duration: const Duration(milliseconds: 300),
-                        margin: const EdgeInsets.symmetric(horizontal: 4),
-                        height: 6,
-                        width: isActive ? 26 : 10,
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(12),
-                          color: isActive
-                              ? AppTheme.primaryColor
-                              : AppTheme.primaryColor.withValues(alpha: 0.25),
-                        ),
-                      );
-                    }),
-                  ),
-                ],
+              child: _PromoCarousel(
+                banners: _promoBanners,
+                onTap: _handlePromoAction,
               ),
             ),
             
@@ -555,90 +463,6 @@ class _UserHomePageState extends State<UserHomePage> {
     );
   }
 
-  Widget _buildPromoBanner({
-    required _PromoBannerData data,
-    required VoidCallback onTap,
-  }) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(24),
-      child: Container(
-        width: double.infinity,
-        padding: const EdgeInsets.all(18),
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(24),
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: data.gradient,
-          ),
-          boxShadow: [
-            BoxShadow(
-              color: data.gradient.first.withValues(alpha: 0.22),
-              blurRadius: 18,
-              offset: const Offset(0, 10),
-            ),
-          ],
-        ),
-        child: Stack(
-          children: [
-            Positioned(
-              right: -10,
-              bottom: -14,
-              child: Icon(
-                data.icon,
-                size: 92,
-                color: Colors.white.withValues(alpha: 0.12),
-              ),
-            ),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.18),
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(
-                      color: Colors.white.withValues(alpha: 0.22),
-                    ),
-                  ),
-                  child: Text(
-                    data.tag,
-                    style: AppTheme.bodyText3.copyWith(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                ),
-                const Spacer(),
-                Text(
-                  data.title,
-                  style: AppTheme.heading3.copyWith(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w800,
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  data.subtitle,
-                  style: AppTheme.bodyText2.copyWith(
-                    color: Colors.white.withValues(alpha: 0.88),
-                    height: 1.25,
-                  ),
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-  
   Widget _buildCategoryCard(
     String title,
     IconData icon,
@@ -1061,6 +885,183 @@ class _UserHomePageState extends State<UserHomePage> {
         _openSearch(context, topRatedOnly: true);
         break;
     }
+  }
+}
+
+class _PromoCarousel extends StatefulWidget {
+  final List<_PromoBannerData> banners;
+  final ValueChanged<_PromoBannerData> onTap;
+
+  const _PromoCarousel({
+    required this.banners,
+    required this.onTap,
+  });
+
+  @override
+  State<_PromoCarousel> createState() => _PromoCarouselState();
+}
+
+class _PromoCarouselState extends State<_PromoCarousel> {
+  late final PageController _controller;
+  Timer? _autoTimer;
+  int _currentIndex = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = PageController(viewportFraction: 0.9);
+    _startAutoPlay();
+  }
+
+  @override
+  void dispose() {
+    _autoTimer?.cancel();
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void _startAutoPlay() {
+    _autoTimer?.cancel();
+    _autoTimer = Timer.periodic(const Duration(seconds: 3), (_) {
+      if (!_controller.hasClients || widget.banners.isEmpty) return;
+      final nextIndex = (_currentIndex + 1) % widget.banners.length;
+      _controller.animateToPage(
+        nextIndex,
+        duration: const Duration(milliseconds: 600),
+        curve: Curves.easeOutCubic,
+      );
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        SizedBox(
+          height: 185,
+          child: PageView.builder(
+            controller: _controller,
+            itemCount: widget.banners.length,
+            onPageChanged: (index) {
+              setState(() => _currentIndex = index);
+            },
+            itemBuilder: (context, index) {
+              final data = widget.banners[index];
+              return Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 4),
+                child: _buildPromoBanner(
+                  data: data,
+                  onTap: () => widget.onTap(data),
+                ),
+              );
+            },
+          ),
+        ),
+        const SizedBox(height: 10),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: List.generate(widget.banners.length, (index) {
+            final isActive = index == _currentIndex;
+            return AnimatedContainer(
+              duration: const Duration(milliseconds: 300),
+              margin: const EdgeInsets.symmetric(horizontal: 4),
+              height: 6,
+              width: isActive ? 26 : 10,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(12),
+                color: isActive
+                    ? AppTheme.primaryColor
+                    : AppTheme.primaryColor.withValues(alpha: 0.25),
+              ),
+            );
+          }),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildPromoBanner({
+    required _PromoBannerData data,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(24),
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(18),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(24),
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: data.gradient,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: data.gradient.first.withValues(alpha: 0.22),
+              blurRadius: 18,
+              offset: const Offset(0, 10),
+            ),
+          ],
+        ),
+        child: Stack(
+          children: [
+            Positioned(
+              right: -10,
+              bottom: -14,
+              child: Icon(
+                data.icon,
+                size: 92,
+                color: Colors.white.withValues(alpha: 0.12),
+              ),
+            ),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.18),
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(
+                      color: Colors.white.withValues(alpha: 0.22),
+                    ),
+                  ),
+                  child: Text(
+                    data.tag,
+                    style: AppTheme.bodyText3.copyWith(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+                const Spacer(),
+                Text(
+                  data.title,
+                  style: AppTheme.heading3.copyWith(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w800,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  data.subtitle,
+                  style: AppTheme.bodyText2.copyWith(
+                    color: Colors.white.withValues(alpha: 0.88),
+                    height: 1.25,
+                  ),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }
 

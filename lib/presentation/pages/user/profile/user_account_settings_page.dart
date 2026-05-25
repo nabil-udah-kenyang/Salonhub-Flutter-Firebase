@@ -187,6 +187,7 @@ class _UserAccountSettingsPageState extends State<UserAccountSettingsPage> {
       phone: phone,
       photoUrl: photoUrl,
     );
+    if (!mounted) return;
     setState(() => _isSaving = false);
 
     if (success) {

@@ -255,6 +255,7 @@ class _AdminBookingsPageState extends State<AdminBookingsPage> {
     final stylistName = _stylistNameCache[booking.stylistId] ?? 'Stylist';
     final statusLabel = _statusLabel(booking.status);
     final statusColor = _statusColor(booking.status);
+    final canTakeAction = _canTakeAction(booking.status);
 
     return Container(
       padding: const EdgeInsets.all(16),
@@ -331,14 +332,14 @@ class _AdminBookingsPageState extends State<AdminBookingsPage> {
               const SizedBox(width: 12),
               Expanded(
                 child: ElevatedButton(
-                  onPressed: () => _openStatusAction(booking),
+                  onPressed: canTakeAction ? () => _openStatusAction(booking) : null,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: AppTheme.primaryColor,
-                    foregroundColor: Colors.white,
+                    backgroundColor: canTakeAction ? AppTheme.primaryColor : AppTheme.borderColor,
+                    foregroundColor: canTakeAction ? Colors.white : AppTheme.textSecondaryColor,
                     padding: const EdgeInsets.symmetric(vertical: 12),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                   ),
-                  child: const Text('Aksi'),
+                  child: Text(canTakeAction ? 'Aksi' : 'Tidak Ada Aksi'),
                 ),
               ),
             ],
@@ -377,6 +378,9 @@ class _AdminBookingsPageState extends State<AdminBookingsPage> {
   }
 
   Future<void> _openStatusAction(BookingModel booking) async {
+    final actions = _statusActionsFor(booking);
+    if (actions.isEmpty) return;
+
     await showModalBottomSheet(
       context: context,
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(28))),
@@ -394,15 +398,58 @@ class _AdminBookingsPageState extends State<AdminBookingsPage> {
                 const SizedBox(height: 16),
                 Text('Aksi Booking', style: AppTheme.heading3),
                 const SizedBox(height: 12),
-                _buildActionTile(Icons.check_circle, 'Tandai selesai', () => _updateStatus(booking, 'completed')),
-                _buildActionTile(Icons.done_all, 'Konfirmasi booking', () => _updateStatus(booking, 'confirmed')),
-                _buildActionTile(Icons.close_rounded, 'Batalkan booking', () => _cancelBooking(booking)),
+                ...actions.map(
+                  (action) => _buildActionTile(action.icon, action.label, action.onTap),
+                ),
               ],
             ),
           ),
         );
       },
     );
+  }
+
+  bool _canTakeAction(String status) {
+    return !_isFinalStatus(status);
+  }
+
+  bool _isFinalStatus(String status) {
+    return status == 'completed' || status == 'cancelled';
+  }
+
+  List<_BookingAction> _statusActionsFor(BookingModel booking) {
+    switch (booking.status) {
+      case 'pending':
+        return [
+          _BookingAction(
+            Icons.done_all,
+            'Konfirmasi booking',
+            () => _updateStatus(booking, 'confirmed'),
+          ),
+          _BookingAction(
+            Icons.close_rounded,
+            'Batalkan booking',
+            () => _cancelBooking(booking),
+          ),
+        ];
+      case 'confirmed':
+      case 'in_progress':
+      case 'rescheduled':
+        return [
+          _BookingAction(
+            Icons.check_circle,
+            'Tandai selesai',
+            () => _updateStatus(booking, 'completed'),
+          ),
+          _BookingAction(
+            Icons.close_rounded,
+            'Batalkan booking',
+            () => _cancelBooking(booking),
+          ),
+        ];
+      default:
+        return [];
+    }
   }
 
   Widget _buildActionTile(IconData icon, String label, Future<void> Function() onTap) {
@@ -551,4 +598,12 @@ class _AdminBookingsPageState extends State<AdminBookingsPage> {
         return AppTheme.textSecondaryColor;
     }
   }
+}
+
+class _BookingAction {
+  final IconData icon;
+  final String label;
+  final Future<void> Function() onTap;
+
+  const _BookingAction(this.icon, this.label, this.onTap);
 }

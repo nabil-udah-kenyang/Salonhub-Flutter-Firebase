@@ -253,10 +253,6 @@ class _AdminStylistsPageState extends State<AdminStylistsPage> {
                         const SizedBox(width: 4),
                         Text('${stylist.experience} tahun', style: AppTheme.bodyText2),
                         const SizedBox(width: 12),
-                        Icon(Icons.star, size: 16, color: Colors.amber),
-                        const SizedBox(width: 4),
-                        Text(stylist.rating.toStringAsFixed(1), style: AppTheme.bodyText2),
-                        const SizedBox(width: 12),
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                           decoration: BoxDecoration(
@@ -377,8 +373,6 @@ class _AdminStylistsPageState extends State<AdminStylistsPage> {
                     photo: '',
                     specializations: specializations,
                     experience: experience,
-                    rating: 0,
-                    totalReviews: 0,
                     barbershopId: _barbershopId!,
                     bio: bioController.text.trim().isEmpty ? null : bioController.text.trim(),
                   );
@@ -437,7 +431,7 @@ class _AdminStylistsPageState extends State<AdminStylistsPage> {
                     const SizedBox(height: 12),
                     _buildModalField('Pengalaman (tahun)', experienceController, icon: Icons.work_outline, keyboardType: TextInputType.number),
                     const SizedBox(height: 12),
-                    _buildModalField('Keahlian (pisahkan dengan koma)', specializationController, icon: Icons.star_outline),
+                    _buildModalField('Keahlian (pisahkan dengan koma)', specializationController, icon: Icons.content_cut_outlined),
                     const SizedBox(height: 20),
                     SizedBox(
                       width: double.infinity,

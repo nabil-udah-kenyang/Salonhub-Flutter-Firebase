@@ -205,7 +205,6 @@ class AuthController extends GetxController {
           updatedAt: Timestamp.fromDate(DateTime.now()),
         );
 
-        await refreshUserData();
         currentUser.refresh();
         return true;
       }
