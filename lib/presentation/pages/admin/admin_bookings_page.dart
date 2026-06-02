@@ -281,6 +281,14 @@ class _AdminBookingsPageState extends State<AdminBookingsPage> {
                       children: [
                         Text(customerName, style: AppTheme.heading3),
                         const SizedBox(height: 4),
+                        Text(
+                          'Kode: ${booking.id ?? '-'}',
+                          style: AppTheme.bodyText2.copyWith(
+                            color: AppTheme.primaryColor,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
                         Text(serviceNames.join(' + '), maxLines: 1, overflow: TextOverflow.ellipsis,
                             style: AppTheme.bodyText2.copyWith(color: AppTheme.textSecondaryColor)),
                       ],
@@ -518,6 +526,7 @@ class _AdminBookingsPageState extends State<AdminBookingsPage> {
                 const SizedBox(height: 16),
                 Text('Detail Booking', style: AppTheme.heading2),
                 const SizedBox(height: 12),
+                _detailRow('Kode Booking', booking.id ?? '-'),
                 _detailRow('Tanggal', _formatFullDate(booking.bookingDate)),
                 _detailRow('Waktu', booking.bookingTime),
                 _detailRow('Layanan', services.join(', ')),

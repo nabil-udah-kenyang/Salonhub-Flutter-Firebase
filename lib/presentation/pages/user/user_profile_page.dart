@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 import '../../../core/theme/app_theme.dart';
+import '../../../core/utils/image_base64_utils.dart';
 import '../../../data/models/user_model.dart';
 import '../../../presentation/controllers/auth_controller.dart';
 import '../../../routes/app_routes.dart';
@@ -121,6 +122,12 @@ class UserProfilePage extends StatelessWidget {
 
   Widget _buildProfileHeader(UserModel user) {
     final photoUrl = user.photoUrl;
+    final photoBytes = photoUrl == null ? null : ImageBase64Utils.decode(photoUrl);
+    final ImageProvider? photoProvider = photoBytes != null
+        ? MemoryImage(photoBytes)
+        : photoUrl != null && photoUrl.startsWith('http')
+            ? NetworkImage(photoUrl)
+            : null;
     final phoneRaw = (user.phone ?? '').trim();
     final phoneDisplay = phoneRaw.isEmpty ? 'Belum ada nomor' : phoneRaw;
 
@@ -144,8 +151,8 @@ class UserProfilePage extends StatelessWidget {
           CircleAvatar(
             radius: 36,
             backgroundColor: AppTheme.primaryColor.withValues(alpha: 0.1),
-            backgroundImage: photoUrl != null && photoUrl.isNotEmpty ? NetworkImage(photoUrl) : null,
-            child: photoUrl == null || photoUrl.isEmpty
+            backgroundImage: photoProvider,
+            child: photoUrl == null || photoUrl.isEmpty || (photoBytes == null && !photoUrl.startsWith('http'))
                 ? Icon(Icons.person, size: 38, color: AppTheme.primaryColor)
                 : null,
           ),

@@ -1,7 +1,11 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:image_picker/image_picker.dart';
 
 import '../../../../core/theme/app_theme.dart';
+import '../../../../core/utils/image_base64_utils.dart';
 import '../../../controllers/auth_controller.dart';
 
 class UserAccountSettingsPage extends StatefulWidget {
@@ -15,7 +19,9 @@ class _UserAccountSettingsPageState extends State<UserAccountSettingsPage> {
   final AuthController _authController = Get.find<AuthController>();
   late final TextEditingController _nameController;
   late final TextEditingController _phoneController;
-  late final TextEditingController _photoUrlController;
+  final ImagePicker _picker = ImagePicker();
+  XFile? _photoFile;
+  String _photoSource = '';
   bool _isSaving = false;
 
   @override
@@ -24,14 +30,13 @@ class _UserAccountSettingsPageState extends State<UserAccountSettingsPage> {
     final user = _authController.currentUser.value;
     _nameController = TextEditingController(text: user?.name ?? '');
     _phoneController = TextEditingController(text: user?.phone ?? '');
-    _photoUrlController = TextEditingController(text: user?.photoUrl ?? '');
+    _photoSource = user?.photoUrl ?? '';
   }
 
   @override
   void dispose() {
     _nameController.dispose();
     _phoneController.dispose();
-    _photoUrlController.dispose();
     super.dispose();
   }
 
@@ -52,15 +57,24 @@ class _UserAccountSettingsPageState extends State<UserAccountSettingsPage> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Center(
-              child: CircleAvatar(
-                radius: 42,
-                backgroundColor: AppTheme.primaryColor.withValues(alpha: 0.1),
-                backgroundImage: (_photoUrlController.text.trim().isNotEmpty)
-                    ? NetworkImage(_photoUrlController.text.trim())
-                    : null,
-                child: _photoUrlController.text.trim().isEmpty
-                    ? Icon(Icons.person, color: AppTheme.primaryColor, size: 42)
-                    : null,
+              child: GestureDetector(
+                onTap: _pickPhoto,
+                child: _buildPhotoPreview(),
+              ),
+            ),
+            const SizedBox(height: 12),
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                onPressed: _pickPhoto,
+                icon: const Icon(Icons.photo_library_outlined, size: 18),
+                label: const Text('Pilih Foto Profil'),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: AppTheme.primaryColor,
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  side: BorderSide(color: AppTheme.primaryColor.withValues(alpha: 0.35)),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                ),
               ),
             ),
             const SizedBox(height: 24),
@@ -90,14 +104,6 @@ class _UserAccountSettingsPageState extends State<UserAccountSettingsPage> {
               _phoneController,
               hintText: 'Contoh: 0812xxxxxxx',
               keyboardType: TextInputType.phone,
-            ),
-            const SizedBox(height: 16),
-            _buildLabel('URL Foto Profil'),
-            _buildInput(
-              _photoUrlController,
-              hintText: 'https://contoh.com/foto.jpg',
-              keyboardType: TextInputType.url,
-              onChanged: (_) => setState(() {}),
             ),
             const SizedBox(height: 32),
             SizedBox(
@@ -169,12 +175,49 @@ class _UserAccountSettingsPageState extends State<UserAccountSettingsPage> {
     );
   }
 
+  Widget _buildPhotoPreview() {
+    final imageBytes = ImageBase64Utils.decode(_photoSource);
+
+    return Container(
+      width: 96,
+      height: 96,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        color: AppTheme.primaryColor.withValues(alpha: 0.1),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: _photoFile != null
+          ? Image.file(File(_photoFile!.path), fit: BoxFit.cover)
+          : imageBytes != null
+              ? Image.memory(imageBytes, fit: BoxFit.cover)
+              : _photoSource.trim().startsWith('http')
+                  ? Image.network(
+                      _photoSource.trim(),
+                      fit: BoxFit.cover,
+                      errorBuilder: (context, error, stackTrace) => _buildPhotoPlaceholder(),
+                    )
+                  : _buildPhotoPlaceholder(),
+    );
+  }
+
+  Widget _buildPhotoPlaceholder() {
+    return Icon(Icons.person, color: AppTheme.primaryColor, size: 46);
+  }
+
+  Future<void> _pickPhoto() async {
+    final file = await _picker.pickImage(
+      source: ImageSource.gallery,
+      imageQuality: 30,
+      maxWidth: 600,
+      maxHeight: 600,
+    );
+    if (file == null) return;
+    setState(() => _photoFile = file);
+  }
+
   Future<void> _save() async {
     final name = _nameController.text.trim();
     final phone = _phoneController.text.trim().isEmpty ? null : _phoneController.text.trim();
-    final photoUrl = _photoUrlController.text.trim().isEmpty
-        ? null
-        : _photoUrlController.text.trim();
 
     if (name.isEmpty) {
       Get.snackbar('Nama wajib diisi', 'Mohon masukkan nama lengkap.');
@@ -182,22 +225,34 @@ class _UserAccountSettingsPageState extends State<UserAccountSettingsPage> {
     }
 
     setState(() => _isSaving = true);
-    final success = await _authController.updateProfile(
-      name: name,
-      phone: phone,
-      photoUrl: photoUrl,
-    );
-    if (!mounted) return;
-    setState(() => _isSaving = false);
+    try {
+      final photoUrl = _photoFile != null
+          ? await ImageBase64Utils.encodeXFile(_photoFile!)
+          : _photoSource.trim().isEmpty
+              ? null
+              : _photoSource.trim();
+      final success = await _authController.updateProfile(
+        name: name,
+        phone: phone,
+        photoUrl: photoUrl,
+      );
+      if (!mounted) return;
 
-    if (success) {
-      Get.snackbar('Profil diperbarui', 'Informasi akun berhasil disimpan.');
-      Get.back(result: true);
-    } else {
-      final message = _authController.errorMessage.value.isNotEmpty
-          ? _authController.errorMessage.value
-          : 'Gagal memperbarui profil. Coba lagi.';
-      Get.snackbar('Gagal', message);
+      if (success) {
+        Get.snackbar('Profil diperbarui', 'Informasi akun berhasil disimpan.');
+        Get.back(result: true);
+      } else {
+        final message = _authController.errorMessage.value.isNotEmpty
+            ? _authController.errorMessage.value
+            : 'Gagal memperbarui profil. Coba lagi.';
+        Get.snackbar('Gagal', message);
+      }
+    } catch (e) {
+      if (mounted) {
+        Get.snackbar('Gagal', 'Foto profil gagal disimpan. Coba pilih foto yang lebih kecil.');
+      }
+    } finally {
+      if (mounted) setState(() => _isSaving = false);
     }
   }
 }

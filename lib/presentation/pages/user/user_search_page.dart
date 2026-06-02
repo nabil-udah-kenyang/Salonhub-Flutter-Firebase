@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:get/get.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/utils/image_base64_utils.dart';
+import '../../../core/utils/rating_formatter.dart';
 import '../../../data/models/barbershop_model.dart';
 import '../../../data/models/service_model.dart';
 import '../../../data/repositories/barbershop_repository.dart';
@@ -254,6 +257,8 @@ class _UserSearchPageState extends State<UserSearchPage> {
   }
   
   Widget _buildSalonCard(BarbershopModel salon, String distance, bool isPromoted) {
+    final profilePhoto = salon.photos.isNotEmpty ? salon.photos[0] : '';
+
     return InkWell(
       onTap: () => Get.to(() => SalonDetailPage(barbershop: salon)),
       borderRadius: BorderRadius.circular(12),
@@ -282,11 +287,8 @@ class _UserSearchPageState extends State<UserSearchPage> {
                   color: AppTheme.primaryColor.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(8),
                 ),
-                child: Icon(
-                  Icons.store,
-                  color: AppTheme.primaryColor,
-                  size: 32,
-                ),
+                clipBehavior: Clip.antiAlias,
+                child: _buildSalonThumbnail(profilePhoto, 32),
               ),
               const SizedBox(width: 12),
               Expanded(
@@ -347,7 +349,7 @@ class _UserSearchPageState extends State<UserSearchPage> {
                             ),
                             const SizedBox(width: 4),
                             Text(
-                              salon.rating.toString(),
+                              RatingFormatter.display(salon.rating),
                               style: AppTheme.bodyText2.copyWith(
                                 fontWeight: FontWeight.w600,
                               ),
@@ -433,6 +435,37 @@ class _UserSearchPageState extends State<UserSearchPage> {
         ],
         ),
       ),
+    );
+  }
+
+  Widget _buildSalonThumbnail(String source, double iconSize) {
+    final trimmed = source.trim();
+    final imageBytes = ImageBase64Utils.decode(trimmed);
+
+    if (imageBytes != null) {
+      return Image.memory(imageBytes, fit: BoxFit.cover);
+    }
+
+    if (trimmed.startsWith('http')) {
+      return Image.network(
+        trimmed,
+        fit: BoxFit.cover,
+        errorBuilder: (context, error, stackTrace) => _buildStoreIcon(iconSize),
+      );
+    }
+
+    if (trimmed.endsWith('.svg')) {
+      return SvgPicture.asset(trimmed, fit: BoxFit.cover);
+    }
+
+    return _buildStoreIcon(iconSize);
+  }
+
+  Widget _buildStoreIcon(double size) {
+    return Icon(
+      Icons.store,
+      color: AppTheme.primaryColor,
+      size: size,
     );
   }
 

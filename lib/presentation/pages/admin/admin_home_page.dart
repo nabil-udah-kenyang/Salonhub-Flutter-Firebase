@@ -4,6 +4,7 @@ import 'package:get/get.dart';
 
 import '../../../core/constants/app_constants.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/utils/rating_formatter.dart';
 import '../../../presentation/controllers/auth_controller.dart';
 import '../../../routes/app_routes.dart';
 import 'admin_barbershop_profile_page.dart';
@@ -342,7 +343,12 @@ class AdminHomePage extends StatelessWidget {
             children: [
               _buildHeroMetric('Status Approval', isApproved ? 'Approved' : 'Menunggu'),
               const SizedBox(width: 12),
-              _buildHeroMetric('Rating', rating > 0 ? '$rating ($totalReviews)' : 'Belum ada'),
+              _buildHeroMetric(
+                'Rating',
+                rating > 0
+                    ? '${RatingFormatter.display(rating)} ($totalReviews)'
+                    : 'Belum ada',
+              ),
             ],
           ),
         ],
@@ -433,7 +439,16 @@ class AdminHomePage extends StatelessWidget {
                       children: [
                         Expanded(child: _buildStatCard('Stylist Aktif', stylistCount.toString(), Icons.groups_rounded, AppTheme.infoColor)),
                         const SizedBox(width: 12),
-                        Expanded(child: _buildStatCard('Rating', ((barbershopData['rating'] as num?)?.toDouble() ?? 0).toStringAsFixed(1), Icons.star_rounded, AppTheme.warningColor)),
+                        Expanded(
+                          child: _buildStatCard(
+                            'Rating',
+                            RatingFormatter.display(
+                              (barbershopData['rating'] as num?)?.toDouble() ?? 0,
+                            ),
+                            Icons.star_rounded,
+                            AppTheme.warningColor,
+                          ),
+                        ),
                       ],
                     ),
                   ],

@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:get/get.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../../../../core/utils/image_base64_utils.dart';
+import '../../../../core/utils/rating_formatter.dart';
 import '../../../../data/models/barbershop_model.dart';
 import '../../../../data/repositories/service_repository.dart';
 import '../../../../data/repositories/stylist_repository.dart';
@@ -172,7 +174,7 @@ class SalonDetailPage extends StatelessWidget {
                             ),
                             const SizedBox(width: 4),
                             Text(
-                              barbershop.rating.toString(),
+                              RatingFormatter.display(barbershop.rating),
                               style: AppTheme.bodyText2.copyWith(
                                 color: AppTheme.successColor,
                                 fontWeight: FontWeight.w600,
@@ -488,6 +490,16 @@ class SalonDetailPage extends StatelessWidget {
     if (coverPhoto.isEmpty) {
       return SvgPicture.asset(
         'lib/assets/images/admin_barber_cover.svg',
+        width: double.infinity,
+        height: double.infinity,
+        fit: BoxFit.cover,
+      );
+    }
+
+    final imageBytes = ImageBase64Utils.decode(coverPhoto);
+    if (imageBytes != null) {
+      return Image.memory(
+        imageBytes,
         width: double.infinity,
         height: double.infinity,
         fit: BoxFit.cover,

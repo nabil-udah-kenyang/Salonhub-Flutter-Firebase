@@ -292,15 +292,10 @@ class AuthRepository {
 
       final firebaseUser = _auth.currentUser;
       if (firebaseUser != null) {
-        updateData['email'] = firebaseUser.email ?? '';
-        updateData['role'] = AppConstants.userRole;
-        updateData['isActive'] = true;
-        updateData['isEmailVerified'] = firebaseUser.emailVerified;
-
         if (name != null && name.isNotEmpty) {
           await firebaseUser.updateDisplayName(name);
         }
-        if (photoUrl != null && photoUrl.isNotEmpty) {
+        if (photoUrl != null && photoUrl.isNotEmpty && photoUrl.startsWith('http')) {
           await firebaseUser.updatePhotoURL(photoUrl);
         }
       }

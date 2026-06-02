@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import '../core/theme/app_theme.dart';
+import 'package:project_salonhub/core/theme/app_theme.dart';
+import 'package:project_salonhub/core/utils/rating_formatter.dart';
 
 class CustomCard extends StatelessWidget {
   final Widget child;
@@ -143,7 +144,7 @@ class SalonCard extends StatelessWidget {
                         ),
                         const SizedBox(width: 4),
                         Text(
-                          rating.toStringAsFixed(1),
+                          RatingFormatter.display(rating),
                           style: AppTheme.bodySmall.copyWith(
                             fontWeight: FontWeight.w600,
                           ),

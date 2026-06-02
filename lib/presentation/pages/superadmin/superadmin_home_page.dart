@@ -4,6 +4,7 @@ import 'package:get/get.dart';
 
 import '../../../core/constants/app_constants.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/utils/rating_formatter.dart';
 import '../../../presentation/controllers/auth_controller.dart';
 import '../../../routes/app_routes.dart';
 import 'superadmin_analytics_page.dart';
@@ -419,7 +420,7 @@ class _SuperadminHomePageState extends State<SuperadminHomePage> {
                     ),
                     const SizedBox(width: 4),
                     Text(
-                      rating.toString(),
+                      RatingFormatter.display(rating),
                       style: AppTheme.bodyText2.copyWith(
                         fontWeight: FontWeight.w600,
                       ),

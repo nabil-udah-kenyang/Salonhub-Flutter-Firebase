@@ -6,6 +6,8 @@ import 'package:get/get.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../../core/constants/app_constants.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/utils/image_base64_utils.dart';
+import '../../../core/utils/rating_formatter.dart';
 import '../../../data/models/barbershop_model.dart';
 import '../../../data/repositories/barbershop_repository.dart';
 import '../../controllers/auth_controller.dart';
@@ -737,7 +739,7 @@ class _UserHomePageState extends State<UserHomePage> {
                           ),
                           const SizedBox(width: 4),
                           Text(
-                            salon.rating.toString(),
+                            RatingFormatter.display(salon.rating),
                             style: AppTheme.bodyText2.copyWith(
                               color: AppTheme.successColor,
                               fontWeight: FontWeight.w600,
@@ -821,6 +823,11 @@ class _UserHomePageState extends State<UserHomePage> {
         'lib/assets/images/admin_barber_cover.svg',
         fit: BoxFit.cover,
       );
+    }
+
+    final imageBytes = ImageBase64Utils.decode(url);
+    if (imageBytes != null) {
+      return Image.memory(imageBytes, fit: BoxFit.cover);
     }
 
     if (url.startsWith('http')) {

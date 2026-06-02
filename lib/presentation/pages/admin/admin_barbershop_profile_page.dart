@@ -9,7 +9,7 @@ import 'package:image_picker/image_picker.dart';
 
 import '../../../core/constants/app_constants.dart';
 import '../../../core/theme/app_theme.dart';
-import '../../../services/storage_service.dart';
+import '../../../core/utils/image_base64_utils.dart';
 import '../../controllers/auth_controller.dart';
 
 class AdminBarbershopProfilePage extends StatefulWidget {
@@ -198,6 +198,7 @@ class _AdminBarbershopProfilePageState extends State<AdminBarbershopProfilePage>
     required VoidCallback onPick,
   }) {
     final isLocalPath = imageUrl.isNotEmpty && (imageUrl.startsWith('/') || imageUrl.startsWith('file:'));
+    final imageBytes = ImageBase64Utils.decode(imageUrl);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -220,21 +221,23 @@ class _AdminBarbershopProfilePageState extends State<AdminBarbershopProfilePage>
                     borderRadius: BorderRadius.circular(18),
                     child: isLocalPath
                         ? Image.file(File(imageUrl), fit: BoxFit.cover)
-                        : Image.network(
-                            imageUrl,
-                            fit: BoxFit.cover,
-                            errorBuilder: (context, error, stackTrace) => _buildPhotoPlaceholder(),
-                            loadingBuilder: (context, child, progress) => progress == null
-                                ? child
-                                : Center(
-                                    child: CircularProgressIndicator(
-                                      value: progress.expectedTotalBytes != null
-                                          ? progress.cumulativeBytesLoaded / (progress.expectedTotalBytes ?? 1)
-                                          : null,
-                                      color: AppTheme.primaryColor,
-                                    ),
-                                  ),
-                          ),
+                        : imageBytes != null
+                            ? Image.memory(imageBytes, fit: BoxFit.cover)
+                            : Image.network(
+                                imageUrl,
+                                fit: BoxFit.cover,
+                                errorBuilder: (context, error, stackTrace) => _buildPhotoPlaceholder(),
+                                loadingBuilder: (context, child, progress) => progress == null
+                                    ? child
+                                    : Center(
+                                        child: CircularProgressIndicator(
+                                          value: progress.expectedTotalBytes != null
+                                              ? progress.cumulativeBytesLoaded / (progress.expectedTotalBytes ?? 1)
+                                              : null,
+                                          color: AppTheme.primaryColor,
+                                        ),
+                                      ),
+                              ),
                   ),
           ),
         ),
@@ -334,6 +337,11 @@ class _AdminBarbershopProfilePageState extends State<AdminBarbershopProfilePage>
       return SvgPicture.asset(fallbackAsset, fit: fit);
     }
 
+    final imageBytes = ImageBase64Utils.decode(url);
+    if (imageBytes != null) {
+      return Image.memory(imageBytes, fit: fit);
+    }
+
     if (!url.startsWith('http')) {
       return SvgPicture.asset(
         url,
@@ -415,7 +423,12 @@ class _AdminBarbershopProfilePageState extends State<AdminBarbershopProfilePage>
           description: 'Rekomendasi ukuran persegi 1:1',
           imageUrl: _profilePhotoFile != null ? _profilePhotoFile!.path : _profilePhotoUrl,
           onPick: () async {
-            final file = await _picker.pickImage(source: ImageSource.gallery, imageQuality: 75);
+            final file = await _picker.pickImage(
+              source: ImageSource.gallery,
+              imageQuality: 30,
+              maxWidth: 600,
+              maxHeight: 600,
+            );
             if (file != null) {
               setState(() {
                 _profilePhotoFile = file;
@@ -429,7 +442,12 @@ class _AdminBarbershopProfilePageState extends State<AdminBarbershopProfilePage>
           description: 'Rekomendasi 16:9 agar tampil maksimal',
           imageUrl: _coverPhotoFile != null ? _coverPhotoFile!.path : _coverPhotoUrl,
           onPick: () async {
-            final file = await _picker.pickImage(source: ImageSource.gallery, imageQuality: 75);
+            final file = await _picker.pickImage(
+              source: ImageSource.gallery,
+              imageQuality: 30,
+              maxWidth: 900,
+              maxHeight: 675,
+            );
             if (file != null) {
               setState(() {
                 _coverPhotoFile = file;
@@ -535,18 +553,10 @@ class _AdminBarbershopProfilePageState extends State<AdminBarbershopProfilePage>
       String coverPhoto = _coverPhotoUrl;
 
       if (_profilePhotoFile != null) {
-        profilePhoto = await StorageService.uploadBarbershopImage(
-          barbershopId: _barbershopId!,
-          folder: 'profile',
-          file: _profilePhotoFile!,
-        );
+        profilePhoto = await ImageBase64Utils.encodeXFile(_profilePhotoFile!);
       }
       if (_coverPhotoFile != null) {
-        coverPhoto = await StorageService.uploadBarbershopImage(
-          barbershopId: _barbershopId!,
-          folder: 'cover',
-          file: _coverPhotoFile!,
-        );
+        coverPhoto = await ImageBase64Utils.encodeXFile(_coverPhotoFile!);
       }
 
       final photos = <String>[

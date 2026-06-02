@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 
 import '../../../core/theme/app_theme.dart';
+import '../../../core/utils/image_base64_utils.dart';
+import '../../../core/utils/rating_formatter.dart';
 import '../../../data/models/barbershop_model.dart';
 import '../../../data/repositories/barbershop_repository.dart';
 import '../../../core/constants/app_constants.dart';
@@ -98,6 +101,7 @@ class UserFavoritesPage extends StatelessWidget {
   Widget _buildFavoriteSalonCard(BarbershopModel salon) {
     final statusColor = salon.isActive ? AppTheme.successColor : AppTheme.errorColor;
     final statusLabel = salon.isActive ? 'Aktif' : 'Suspended';
+    final profilePhoto = salon.photos.isNotEmpty ? salon.photos[0] : '';
 
     return InkWell(
       onTap: () => Get.to(() => SalonDetailPage(barbershop: salon)),
@@ -124,7 +128,8 @@ class UserFavoritesPage extends StatelessWidget {
                 color: AppTheme.primaryColor.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(8),
               ),
-              child: Icon(Icons.store, color: AppTheme.primaryColor, size: 24),
+              clipBehavior: Clip.antiAlias,
+              child: _buildSalonThumbnail(profilePhoto),
             ),
             const SizedBox(width: 12),
             Expanded(
@@ -151,7 +156,7 @@ class UserFavoritesPage extends StatelessWidget {
                           const Icon(Icons.star, color: Colors.amber, size: 16),
                           const SizedBox(width: 4),
                           Text(
-                            salon.rating.toStringAsFixed(1),
+                            RatingFormatter.display(salon.rating),
                             style: AppTheme.bodyText2.copyWith(fontWeight: FontWeight.w600),
                           ),
                         ],
@@ -181,6 +186,33 @@ class UserFavoritesPage extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  Widget _buildSalonThumbnail(String source) {
+    final trimmed = source.trim();
+    final imageBytes = ImageBase64Utils.decode(trimmed);
+
+    if (imageBytes != null) {
+      return Image.memory(imageBytes, fit: BoxFit.cover);
+    }
+
+    if (trimmed.startsWith('http')) {
+      return Image.network(
+        trimmed,
+        fit: BoxFit.cover,
+        errorBuilder: (context, error, stackTrace) => _buildStoreIcon(),
+      );
+    }
+
+    if (trimmed.endsWith('.svg')) {
+      return SvgPicture.asset(trimmed, fit: BoxFit.cover);
+    }
+
+    return _buildStoreIcon();
+  }
+
+  Widget _buildStoreIcon() {
+    return Icon(Icons.store, color: AppTheme.primaryColor, size: 24);
   }
 
   Widget _buildEmptyFavoriteState({String message = 'Favorit akan tampil dari database setelah kamu menyimpan barbershop favorit.'}) {
